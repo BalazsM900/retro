@@ -1,0 +1,265 @@
+<center>
+<div id="pauseOverlay"></div>
+<div id="pauseBox">
+	<p class="pauseSymbol">❚❚</p>
+    <p>GAME PAUSED</p>
+</div>
+<p>
+    <span class="left">SCORE: <span id="scoreElement">0</span></span>
+    <span class="right">HIGHSCORE: <span id="highscoreElement">0</span></span>
+</p>
+<br />
+<canvas id="c" width="1000" height="600"></canvas>
+<br />
+<p class="instructions">
+    <span class="right">CONTROL: ARROWS /PAUSE GAME: ESC</span>
+</p>
+</center>
+<style>
+center {
+    margin-top: 100px;
+}
+
+canvas {
+    margin-top: -5px;
+    border: 5px solid blue;
+    box-shadow: 0 0 50px white;
+    cursor: none;
+}
+
+body {
+    background-color: black;
+    overflow: hidden;
+}
+
+p {
+	margin: 0;
+    width: 600px;
+    display: inline-block;
+    font-family: Courier New, Courier, Lucida Sans Typewriter, Lucida Typewriter,
+	monospace;
+    color: yellow;
+    font-size: 24px;
+    font-weight: 700;
+    text-shadow: 0 0 10px tomato;
+}
+
+#pauseOverlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+}
+
+#pauseBox {
+    display: none;
+    position: absolute;
+    margin-top: 274px;
+}
+
+#pauseBox p {
+    width: 100vw;
+}
+
+.pauseSymbol {
+    font-size: 45px;
+}
+
+.instructions {
+    font-size: 14px;
+}
+
+.left {
+    float: left;
+}
+
+.right {
+    float: right;
+}
+</style>
+<script>
+window.onload = function () {
+    padding = 4;
+    tileCount = 20;
+    tileSize = 600 / tileCount;
+    fpsInit = 5;
+    xVelInit = 1;
+    yVelInit = 0;
+    xPosInit = 8;
+    yPosInit = 3;
+    lengthInit = 5;
+    scoreInit = 0;
+    fps = 5;
+    score = 0;
+    highscore = 0;
+    shouldSpeedUp = false;
+    paused = false;
+    setInitialValues();
+
+    canvas = document.getElementById("c");
+    ctx = canvas.getContext("2d");
+    ctx.shadowBlur = 10;
+    scoreElement = document.getElementById("scoreElement");
+    highscoreElement = document.getElementById("highscoreElement");
+    pauseOverlay = document.getElementById("pauseOverlay");
+    pauseBox = document.getElementById("pauseBox");
+    document.addEventListener("keydown", keyPress);
+
+    gameLoop = setInterval(update, 1000 / fps);
+
+    function restartGameLoop() {
+if (gameLoop) {
+        clearInterval(gameLoop);
+}
+gameLoop = setInterval(update, 1000 / fps);
+    }
+
+    function update() {
+if (paused) {
+        clearInterval(gameLoop);
+}
+if (
+        (xPos + xVel == trail[1].x && xVel != 0) ||
+        (yPos + yVel == trail[1].y && yVel != 0)
+) {
+        xVel *= -1;
+        yVel *= -1;
+	}
+	xPos += xVel;
+	yPos += yVel;
+if (xPos < 0 || yPos < 0 || xPos >= tileCount || yPos >= tileCount) {
+        resetGame();
+        return;
+}
+
+if (xPos == xApple && yPos == yApple) {
+        score++;
+        length++;
+        shouldSpeedUp = fps < 15;
+        xApple = Math.floor(Math.random() * tileCount);
+        yApple = Math.floor(Math.random() * tileCount);
+        while (appleInTrail()) {
+          xApple = Math.floor(Math.random() * tileCount);
+          yApple = Math.floor(Math.random() * tileCount);
+        }
+}
+trail.splice(0, 0, { x: xPos, y: yPos });
+while (trail.length > length) {
+        trail.pop();
+}
+
+for (var i = 1; i < trail.length; i++) {
+        let pos = trail[i];
+        if (pos.x == xPos && pos.y == yPos) {
+resetGame();
+        }}
+ctx.fillStyle = "black";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = "#FF00FF";
+ctx.shadowColor = "#FF0F0";
+ctx.fillRect(
+        xApple * tileSize + padding,
+        yApple * tileSize + padding,
+        tileSize - padding,
+        tileSize - padding
+);
+ctx.fillStyle = "#F0000";
+ctx.shadowColor = "#0FFF00";
+for (var i = 0; i < trail.length; i++) {
+        ctx.fillStyle = colorLuminance("#F0000", -0.05 * (i < 10 ? i : 10));
+        ctx.shadowColor = colorLuminance("#0FFF00", -0.05 * (i < 10 ? i : 10));
+        let pos = trail[i];
+        ctx.fillRect(
+          pos.x * tileSize + padding,
+          pos.y * tileSize + padding,
+tileSize - padding,
+tileSize - padding
+        );
+}
+scoreElement.innerHTML = score;
+if (shouldSpeedUp) {
+        shouldSpeedUp = false;
+        fps++;
+        restartGameLoop();
+}
+    }
+
+    function appleInTrail() {
+for (var i = 0; i < trail.length; i++) {
+        if (xApple == trail[i].x && yApple == trail[i].y) {
+			return true;
+        }}
+		return false;
+    }
+
+    function resetGame() {
+		if (highscore < score) {
+        highscore = score;
+        highscoreElement.innerHTML = highscore;
+	}
+	setInitialValues();
+	restartGameLoop();
+    }
+
+    function setInitialValues() {
+		xPos = xPosInit;
+		yPos = yPosInit;
+		xVel = xVelInit;
+		yVel = yVelInit;
+		fps = fpsInit;
+		xApple = yApple = 10;
+		length = 5;
+		score = 0;
+
+trail = [];
+for (var i = 0; i < length; i++) {
+	trail.push({ x: xPos - i, y: yPos });}}
+
+    function keyPress(e) {
+		switch (e.keyCode) {
+        case 37:
+			if (xVel == 1 || paused) return;
+			xVel = -1;
+			yVel = 0;
+			break;
+        case 38:
+			if (yVel == 1 || paused) return;
+			xVel = 0;
+			yVel = -1;
+			break;
+        case 39:
+			if (xVel == -1 || paused) return;
+			xVel = 1;
+			yVel = 0;
+			break;
+        case 40:
+			if (yVel == -1 || paused) return;
+			xVel = 0;
+			yVel = 1;
+			break;
+        case 27:
+        case 80:
+			togglePause();
+			break;}}
+
+    function togglePause() {
+		paused = !paused;
+		if (!paused) {
+        restartGameLoop();
+        pauseBox.style.display = "none";
+        pauseOverlay.style.display = "none";} else {
+        pauseBox.style.display = "block";
+        pauseOverlay.style.display = "block";}}
+
+    function colorLuminance(hex, lum) {hex = String(hex).replace(/[^0-9a-f]/gi, "");
+	if (hex.length < 6) {hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];} lum = lum || 0;
+	var rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i * 2, 2), 16);
+        c = Math.round(Math.min(Math.max(0, c + c * lum), 255)).toString(16);
+        rgb += ("00" + c).substr(c.length);}
+		return rgb;}};
+</script>
